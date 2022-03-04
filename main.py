@@ -34,17 +34,18 @@ def parse():
     parser.add_argument('--batch-size', default=256, type=int, metavar='N',
                         help='mini-batch size(default: 256)')
     parser.add_argument('--mock-time', default=0, type=int, metavar='N',
-                        help='mock training time in milliseconds')
+                        help='mock training time in milliseconds (default: 0)')
+    parser.add_argument('--print-freq', default=10, type=int, metavar='N',
+                        help='print frequency (default: 10)')
     args = parser.parse_args()
     return args
 
-def processReadFunc(train_dir, batch_size, num_workers, mock_time, num_shards, shard_id):
+def processReadFunc(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id):
     full_file_name = '/header.txt'
     subset_file_name = '/headerPartial.txt'
     writeShardToFile(full_file_name, subset_file_name, num_shards, shard_id);
     train_set = ImageList(subset_file_name, train_dir)
-    train_data = DataLoader(train_set, batch_size=int(args.batch_size), shuffle=False, num_workers=num_workers, drop_last=True)
-    costs = []
+    train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
     batch_index = 0
     e_st = time.time()
     g_time = time.time()
@@ -52,8 +53,8 @@ def processReadFunc(train_dir, batch_size, num_workers, mock_time, num_shards, s
         cost = time.time() - e_st
         if mock_time != 0:
             time.sleep(mock_time * 0.001)
-        costs.append(cost)
-        print('[%s] pid: %s, batch %s, cost %.4f, cur sum %s' % (datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
+        if batch_index % print_freq == 0:
+            print('[%s] pid: %s, batch %s, cost %.4f, cur sum %s' % (datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
         e_st = time.time()
     total_time = time.time() - g_time
     qps = batch_index * args.batch_size / total_time
@@ -118,7 +119,7 @@ def main():
                         rank, args.process, args.threads, args.batch_size, args.mock_time, num_shards, shard_id))
 
     pool = Pool(processes=args.process)
-    process_read_func = partial(processReadFunc, train_dir, args.batch_size, args.thread, args.mock_time, args.num_shards)
+    process_read_func = partial(processReadFunc, train_dir, int(args.batch_size), args.thread, args.mock_time, args.print_freq, args.num_shards)
 
     for epoch in range(0, args.epochs):
         results = pool.map(process_read_func, shard_id)
