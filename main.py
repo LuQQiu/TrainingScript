@@ -28,9 +28,9 @@ def parse():
     parser.add_argument('--epochs', default=1, type=int, metavar='N',
                         help='number of total epochs to run (default: 1)')
     parser.add_argument('--process', default=4, type=int, metavar='N',
-                        help='number of data loading processes (default: 4) in each node')
-    parser.add_argument('--thread', default=4, type=int, metavar='N',
-                        help='number of data loading threads (default: 4) in each process')
+                        help='number of processes (default: 4) to do data loading and mock training in each node')
+    parser.add_argument('--subprocess', default=2, type=int, metavar='N',
+                        help='number of data loading subprocesses (default: 2) in each mock training process')
     parser.add_argument('--batch-size', default=256, type=int, metavar='N',
                         help='mini-batch size(default: 256)')
     parser.add_argument('--mock-time', default=0, type=int, metavar='N',
@@ -118,15 +118,15 @@ def main():
     train_dir = args.data[0]
 
     logger.info('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
-                'rank[{}], processes[{}], threads per process[{}], batch_size[{}], mock_time[{}], num_shards[{}], current_shard_id[{}]'
+                'rank[{}], processes[{}], subprocesses per mock training process[{}], batch_size[{}], mock_time[{}], num_shards[{}], current_shard_id[{}]'
                 .format(train_dir, args.world_size, master_addr, master_port,
-                        rank, args.process, args.thread, args.batch_size, args.mock_time, num_shards, shard_id))
+                        rank, args.process, args.subprocess, args.batch_size, args.mock_time, num_shards, shard_id))
     jobs = [None] * args.process
     queue = multiprocessing.Queue()
     for epoch in range(0, args.epochs):
         for i in range(args.process):
             p = multiprocessing.Process(target=process_read, args=(
-                train_dir, int(args.batch_size), args.thread, args.mock_time, args.print_freq, num_shards, shard_id, queue))
+                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, shard_id, queue))
             jobs[i] = p
             p.start()
 
