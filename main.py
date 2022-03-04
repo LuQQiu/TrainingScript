@@ -1,11 +1,10 @@
 import argparse
-import os
 import logging
+import multiprocessing
+import os
 import time
 
 from datetime import datetime
-from functools import partial
-from multiprocessing import Pool
 from torch.utils.data import DataLoader
 
 import torch
@@ -16,6 +15,7 @@ import torch.utils.data.distributed
 import torchvision.models as models
 
 from common.dataset import ImageList
+
 
 def parse():
     model_names = sorted(name for name in models.__dict__
@@ -40,10 +40,11 @@ def parse():
     args = parser.parse_args()
     return args
 
-def processReadFunc(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id):
+
+def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, queue):
     full_file_name = '/root/code/TrainingScript/header.txt'
     subset_file_name = '/root/code/TrainingScript/headerPartial.txt'
-    writeShardToFile(full_file_name, subset_file_name, num_shards, shard_id);
+    select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id);
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
     batch_index = 0
@@ -54,20 +55,23 @@ def processReadFunc(train_dir, batch_size, num_workers, mock_time, print_freq, n
         if mock_time != 0:
             time.sleep(mock_time * 0.001)
         if batch_index % print_freq == 0:
-            print('[%s] pid: %s, batch %s, cost %.4f, cur sum %s' % (datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
+            print('[%s] pid: %s, batch %s, cost %.4f, cur sum %s' % (
+                datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
         e_st = time.time()
     total_time = time.time() - g_time
     qps = batch_index * args.batch_size / total_time
-    print("[%s] pid: %s, cost %.4f, qps %.4f" % (datetime.datetime.now(), os.getpid(), total_cost, qps))
-    return total_time, qps
+    print("[%s] pid: %s, cost %.4f, qps %.4f" % (datetime.datetime.now(), os.getpid(), total_time, qps))
+    queue.put([total_time, qps])
 
-def writeShardToFile(full_file_name, subset_file_name, num_shards, shard_id):
+
+def select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id):
     selected_file = open(subset_file_name, "w")
     with open(full_file_name, "r") as full_file:
         for i, line in enumerate(full_file):
             if i % num_shards == shard_id:
                 selected_file.write(line)
     selected_file.close()
+
 
 def main():
     global args
@@ -117,16 +121,25 @@ def main():
                 'rank[{}], processes[{}], threads per process[{}], batch_size[{}], mock_time[{}], num_shards[{}], current_shard_id[{}]'
                 .format(train_dir, args.world_size, master_addr, master_port,
                         rank, args.process, args.thread, args.batch_size, args.mock_time, num_shards, shard_id))
-
-    pool = Pool(processes=args.process)
-    process_read_func = partial(processReadFunc, train_dir, int(args.batch_size), args.thread, args.mock_time, args.print_freq, args.num_shards)
-
+    jobs = [None] * args.process
+    queue = multiprocessing.Queue()
     for epoch in range(0, args.epochs):
-        results = pool.map(process_read_func, shard_id)
+        for i in range(args.process):
+            p = multiprocessing.Process(target=process_read, args=(
+                train_dir, int(args.batch_size), args.thread, args.mock_time, args.print_freq, num_shards, shard_id, queue))
+            jobs[i] = p
+            p.start()
+
+        for proc in jobs:
+            proc.join()
+
         total_qps = 0.0
-        for result in results:
-            logger.info("Epoch{} process read time {} qps {}".format(epoch, result[0], result[1]))
-            total_qps += result[1]
+        while not queue.empty():
+            res = queue.get()
+            res_time = res[0]
+            res_qps = res[1]
+            logger.info("Epoch{} process read time {} qps {}".format(epoch, res_time, res_qps))
+            total_qps += res_qps
         # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
         logger.info("Epoch {} training end: total qps {}".format(epoch, total_qps))
         # clear buffer cache requires special docker privileges
