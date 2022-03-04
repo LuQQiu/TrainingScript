@@ -41,8 +41,8 @@ def parse():
     return args
 
 def processReadFunc(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id):
-    full_file_name = '/header.txt'
-    subset_file_name = '/headerPartial.txt'
+    full_file_name = '/root/code/TrainingScript/header.txt'
+    subset_file_name = '/root/code/TrainingScript/headerPartial.txt'
     writeShardToFile(full_file_name, subset_file_name, num_shards, shard_id);
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
@@ -116,7 +116,7 @@ def main():
     logger.info('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
                 'rank[{}], processes[{}], threads per process[{}], batch_size[{}], mock_time[{}], num_shards[{}], current_shard_id[{}]'
                 .format(train_dir, args.world_size, master_addr, master_port,
-                        rank, args.process, args.threads, args.batch_size, args.mock_time, num_shards, shard_id))
+                        rank, args.process, args.thread, args.batch_size, args.mock_time, num_shards, shard_id))
 
     pool = Pool(processes=args.process)
     process_read_func = partial(processReadFunc, train_dir, int(args.batch_size), args.thread, args.mock_time, args.print_freq, args.num_shards)
