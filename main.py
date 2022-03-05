@@ -43,7 +43,8 @@ def parse():
 
 def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, logger, queue):
     full_file_name = '/root/code/TrainingScript/header.txt'
-    subset_file_name = '/root/code/TrainingScript/headerPartial.txt'
+    pid = os.getpid()
+    subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
     select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
@@ -60,7 +61,7 @@ def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_
         e_st = time.time()
     total_time = time.time() - g_time
     qps = batch_index * args.batch_size / total_time
-    logger.info("{} pid: {}, cost {:3f}, qps {:3f}".format(datetime.datetime.now(), os.getpid(), total_time, qps))
+    logger.info("{} pid: {}, cost {:3f}, qps {:3f}".format(datetime.datetime.now(), pid, total_time, qps))
     queue.put([total_time, qps])
 
 
