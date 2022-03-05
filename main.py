@@ -127,7 +127,7 @@ def main():
     for epoch in range(0, args.epochs):
         for i in range(0, args.process):
             p = multiprocessing.Process(target=process_read, args=(
-                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, logger, message_queue, res_queue))
+                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, message_queue, res_queue))
             jobs[i] = p
             p.start()
 
