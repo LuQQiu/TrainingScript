@@ -41,10 +41,10 @@ def parse():
     return args
 
 
-def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, queue):
+def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, logger, queue):
     full_file_name = '/root/code/TrainingScript/header.txt'
     subset_file_name = '/root/code/TrainingScript/headerPartial.txt'
-    select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id);
+    select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
     batch_index = 0
@@ -55,12 +55,12 @@ def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_
         if mock_time != 0:
             time.sleep(mock_time * 0.001)
         if batch_index % print_freq == 0:
-            print('[%s] pid: %s, batch %s, cost %.4f, cur sum %s' % (
+            logger.info('{} pid: {}, batch {}, cost {:3f}, cur sum {:3f}'.format(
                 datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
         e_st = time.time()
     total_time = time.time() - g_time
     qps = batch_index * args.batch_size / total_time
-    print("[%s] pid: %s, cost %.4f, qps %.4f" % (datetime.datetime.now(), os.getpid(), total_time, qps))
+    logger.info("{} pid: {}, cost {:3f}, qps {:3f}".format(datetime.datetime.now(), os.getpid(), total_time, qps))
     queue.put([total_time, qps])
 
 
@@ -113,20 +113,19 @@ def main():
     # mock the actual machine learning process
     # each process in each node read a portion of the whole dataset
     num_shards = args.world_size * args.process
-    shard_id = range(rank * args.process, (rank + 1) * args.process)
 
     train_dir = args.data[0]
 
     logger.info('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
-                'rank[{}], processes[{}], subprocesses per mock training process[{}], batch_size[{}], mock_time[{}], num_shards[{}], current_shard_id[{}]'
+                'rank[{}], processes[{}], subprocesses per mock training process[{}], batch_size[{}], mock_time[{}], num_shards[{}]'
                 .format(train_dir, args.world_size, master_addr, master_port,
-                        rank, args.process, args.subprocess, args.batch_size, args.mock_time, num_shards, shard_id))
+                        rank, args.process, args.subprocess, args.batch_size, args.mock_time, num_shards))
     jobs = [None] * args.process
     queue = multiprocessing.Queue()
     for epoch in range(0, args.epochs):
-        for i in range(args.process):
+        for i in range(0, args.process):
             p = multiprocessing.Process(target=process_read, args=(
-                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, shard_id, queue))
+                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, logger, queue))
             jobs[i] = p
             p.start()
 
