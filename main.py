@@ -31,8 +31,8 @@ def parse():
                         help='number of processes (default: 4) to do data loading and mock training in each node')
     parser.add_argument('--subprocess', default=2, type=int, metavar='N',
                         help='number of data loading subprocesses (default: 2) in each mock training process')
-    parser.add_argument('--batch-size', default=256, type=int, metavar='N',
-                        help='mini-batch size(default: 256)')
+    parser.add_argument('--batch-size', default=128, type=int, metavar='N',
+                        help='mini-batch size(default: 128)')
     parser.add_argument('--mock-time', default=0, type=int, metavar='N',
                         help='mock training time in milliseconds (default: 0)')
     parser.add_argument('--print-freq', default=10, type=int, metavar='N',
@@ -41,7 +41,7 @@ def parse():
     return args
 
 
-def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, logger, queue):
+def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, message_queue, res_queue):
     full_file_name = '/root/code/TrainingScript/header.txt'
     pid = os.getpid()
     subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
@@ -56,13 +56,13 @@ def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_
         if mock_time != 0:
             time.sleep(mock_time * 0.001)
         if batch_index % print_freq == 0:
-            logger.info('{} pid: {}, batch {}, cost {:3f}, cur sum {:3f}'.format(
-                datetime.datetime.now(), os.getpid(), batch_index, cost, len(batch_imgs)))
+            message_queue.put('pid: {}, batch {}, cost {:3f}, cur sum {:3f}'.format(
+                os.getpid(), batch_index, cost, len(batch_imgs)))
         e_st = time.time()
     total_time = time.time() - g_time
     qps = batch_index * args.batch_size / total_time
-    logger.info("{} pid: {}, cost {:3f}, qps {:3f}".format(datetime.datetime.now(), pid, total_time, qps))
-    queue.put([total_time, qps])
+    message_queue.put("pid: {}, cost {:3f}, qps {:3f}".format(pid, total_time, qps))
+    res_queue.put([total_time, qps])
 
 
 def select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id):
@@ -122,20 +122,29 @@ def main():
                 .format(train_dir, args.world_size, master_addr, master_port,
                         rank, args.process, args.subprocess, args.batch_size, args.mock_time, num_shards))
     jobs = [None] * args.process
-    queue = multiprocessing.Queue()
+    res_queue = multiprocessing.Queue()
+    message_queue = multiprocessing.Queue()
     for epoch in range(0, args.epochs):
         for i in range(0, args.process):
             p = multiprocessing.Process(target=process_read, args=(
-                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, logger, queue))
+                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, logger, message_queue, res_queue))
             jobs[i] = p
             p.start()
+
+        while True:
+            if message_queue.empty():
+                time.sleep(10)
+            else:
+                print(message_queue.get())
+            if message_queue.empty():
+                break
 
         for proc in jobs:
             proc.join()
 
         total_qps = 0.0
-        while not queue.empty():
-            res = queue.get()
+        while not res_queue.empty():
+            res = res_queue.get()
             res_time = res[0]
             res_qps = res[1]
             logger.info("Epoch{} process read time {} qps {}".format(epoch, res_time, res_qps))
