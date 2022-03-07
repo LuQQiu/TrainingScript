@@ -42,7 +42,7 @@ def parse():
 
 
 def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, message_queue, res_queue):
-    full_file_name = '/root/code/TrainingScript/header.txt'
+    full_file_name = '/root/code/TrainingScript/header-1k-130mb-130gb.txt'
     pid = os.getpid()
     subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
     select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
