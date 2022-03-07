@@ -46,8 +46,10 @@ def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_
     pid = os.getpid()
     subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
     select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
+
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
+
     batch_index = 0
     e_st = time.time()
     g_time = time.time()
@@ -59,10 +61,11 @@ def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_
             message_queue.put('pid: {}, batch {}, cost {:3f}, cur sum {:3f}'.format(
                 os.getpid(), batch_index, cost, len(batch_imgs)))
         e_st = time.time()
-    total_time = time.time() - g_time
-    qps = batch_index * args.batch_size / total_time
-    message_queue.put("pid: {}, cost {:3f}, qps {:3f}".format(pid, total_time, qps))
-    res_queue.put([total_time, qps])
+    total_train_time = time.time() - g_time
+    batch_train_time = total_train_time / batch_index
+    qps = batch_index * args.batch_size / total_train_time
+    message_queue.put("pid: {}, total cost {:3f}, batch cost {:3f}, qps {:3f},".format(pid, total_train_time, batch_train_time, qps))
+    res_queue.put([batch_train_time, qps])
 
 
 def select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id):
@@ -143,14 +146,17 @@ def main():
             proc.join()
 
         total_qps = 0.0
+        total_time = 0.0
         while not res_queue.empty():
             res = res_queue.get()
             res_time = res[0]
             res_qps = res[1]
-            logger.info("Epoch{} process read time {} qps {}".format(epoch, res_time, res_qps))
+            logger.info("Epoch{} process average batch read time {} qps {}".format(epoch, res_time, res_qps))
             total_qps += res_qps
+            total_time += res_time
         # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
-        logger.info("Epoch {} training end: total qps {}".format(epoch, total_qps))
+        average_batch_train_time = total_time / args.process
+        logger.info("Epoch {} training end: average per training process batch train time {}, per node qps {}".format(epoch, average_batch_train_time, total_qps))
         # clear buffer cache requires special docker privileges
         # as a workaround, we clear the buffer cache manually
         # TODO(lu) enable setting docker privileges in arena to support clear buffer cache in script
