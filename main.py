@@ -84,10 +84,6 @@ def main():
     if not len(args.data):
         raise Exception("error: No data set provided")
 
-    # set cluster logging
-    logger = logging.getLogger('alluxio_dali_data_loading')
-    logger.setLevel(logging.INFO)
-
     master_addr = "N/A"
     master_port = "N/A"
     if 'MASTER_ADDR' in os.environ:
@@ -121,7 +117,7 @@ def main():
     train_dir = args.data[0]
     file_name_list = args.data[1]
 
-    logger.info('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
+    print('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
                 'rank[{}], processes[{}], subprocesses per mock training process[{}], batch_size[{}], mock_time[{}], num_shards[{}]'
                 .format(train_dir, args.world_size, master_addr, master_port,
                         rank, args.process, args.subprocess, args.batch_size, args.mock_time, num_shards))
@@ -137,7 +133,7 @@ def main():
 
         while True:
             if message_queue.empty():
-                time.sleep(10)
+                time.sleep(30)
             else:
                 print(message_queue.get())
             if message_queue.empty():
@@ -152,16 +148,16 @@ def main():
             res = res_queue.get()
             res_time = res[0]
             res_qps = res[1]
-            logger.info("Epoch{} process average batch read time {} qps {}".format(epoch, res_time, res_qps))
+            print("Epoch{} process average batch read time {} qps {}".format(epoch, res_time, res_qps))
             total_qps += res_qps
             total_time += res_time
         # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
         average_batch_train_time = total_time / args.process
-        logger.info("Epoch {} training end: average per training process batch train time {}, per node qps {}".format(epoch, average_batch_train_time, total_qps))
+        print("Epoch {} training end: average per training process batch train time {}, per node qps {}".format(epoch, average_batch_train_time, total_qps))
         # clear buffer cache requires special docker privileges
         # as a workaround, we clear the buffer cache manually
         # TODO(lu) enable setting docker privileges in arena to support clear buffer cache in script
-        logger.info("Starts sleeping to give time for clearing system buffer cache manually")
+        print("Starts sleeping to give time for clearing system buffer cache manually")
         time.sleep(300)
 
 
