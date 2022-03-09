@@ -24,7 +24,7 @@ def parse():
 
     parser = argparse.ArgumentParser(description='PyTorch ImageNet DALI Data Loading')
     parser.add_argument('data', metavar='DIR', nargs='*',
-                        help='path to dataset')
+                        help='path to dataset, and name of the file containing all file names of the dataset')
     parser.add_argument('--epochs', default=1, type=int, metavar='N',
                         help='number of total epochs to run (default: 1)')
     parser.add_argument('--process', default=4, type=int, metavar='N',
@@ -41,8 +41,8 @@ def parse():
     return args
 
 
-def process_read(train_dir, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, message_queue, res_queue):
-    full_file_name = '/root/code/TrainingScript/header-1k-130mb-130gb.txt'
+def process_read(train_dir, file_name_list, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, message_queue, res_queue):
+    full_file_name = "/root/code/TrainingScript/" + file_name_list
     pid = os.getpid()
     subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
     select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
@@ -119,6 +119,7 @@ def main():
     num_shards = args.world_size * args.process
 
     train_dir = args.data[0]
+    file_name_list = args.data[1]
 
     logger.info('Launching training script: train_dir[{}], world_size[{}], master_addr[{}], master_port[{}], '
                 'rank[{}], processes[{}], subprocesses per mock training process[{}], batch_size[{}], mock_time[{}], num_shards[{}]'
@@ -130,7 +131,7 @@ def main():
     for epoch in range(0, args.epochs):
         for i in range(0, args.process):
             p = multiprocessing.Process(target=process_read, args=(
-                train_dir, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, message_queue, res_queue))
+                train_dir, file_name_list, int(args.batch_size), args.subprocess, args.mock_time, args.print_freq, num_shards, rank * args.process + i, message_queue, res_queue))
             jobs[i] = p
             p.start()
 
