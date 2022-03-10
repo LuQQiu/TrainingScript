@@ -139,7 +139,7 @@ def main():
             else:
                 print(message_queue.get())
                 failed_num = 0
-            if failed_num >= args.print_freq:
+            if failed_num >= 3:
                 break
 
         for proc in jobs:
