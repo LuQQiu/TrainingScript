@@ -103,12 +103,12 @@ def main():
 
     args.world_size = 1
     if args.distributed:
-        logger.info('Launching distributed test with gloo backend')
+        print('Launching distributed test with gloo backend')
         # distributed information will be passed in through environment variable WORLD_SIZE and RANK
         torch.distributed.init_process_group(backend='gloo',
                                              init_method='env://')
         args.world_size = torch.distributed.get_world_size()
-        logger.info('Launched distributed test in {} nodes'.format(args.world_size))
+        print('Launched distributed test in {} nodes'.format(args.world_size))
 
     # mock the actual machine learning process
     # each process in each node read a portion of the whole dataset
