@@ -131,12 +131,15 @@ def main():
             jobs[i] = p
             p.start()
 
+        failed_num = 0
         while True:
             if message_queue.empty():
                 time.sleep(30)
+                failed_num += 1
             else:
                 print(message_queue.get())
-            if message_queue.empty():
+                failed_num = 0
+            if failed_num >= args.print_freq:
                 break
 
         for proc in jobs:
