@@ -98,7 +98,7 @@ def start_load(args):
 
 def main():
     parser = argparse.ArgumentParser(description='Alluxio POSIX API benchmark test')
-    parser.add_argument('--batch-size', default=128, type=int, metavar='N',
+    parser.add_argument('-b', '--batch-size', default=128, type=int, metavar='N',
                         help='mini-batch size(default: 128)')
     parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
                         help='number of data loading workers (default: 16)')
@@ -106,7 +106,7 @@ def main():
                         help='path to input csv file with file names to load')
     parser.add_argument('-n', '--number_of_files', default=5000000, type=int, metavar='N',
                         help='number of files to be processed')
-    parser.add_argument('-P', '--path_prefix', type=str, metavar='N',
+    parser.add_argument('-p', '--path_prefix', type=str, metavar='N',
                         help='path prefix of the list files')
     parser.add_argument('-r', '--local_rank', type=int, metavar='N',
                         help='local rank')
