@@ -13,6 +13,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
+import zipfile
 
 from common.dataset import ImageList
 
@@ -42,10 +43,9 @@ def parse():
 
 
 def process_read(train_dir, file_name_list, batch_size, num_workers, mock_time, print_freq, num_shards, shard_id, message_queue, res_queue):
-    full_file_name = "/root/code/TrainingScript/" + file_name_list
     pid = os.getpid()
     subset_file_name = '/root/code/TrainingScript/headerPartial{}.txt'.format(pid)
-    select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id)
+    select_files_to_read(file_name_list, subset_file_name, num_shards, shard_id)
 
     train_set = ImageList(subset_file_name, train_dir)
     train_data = DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=True)
@@ -68,8 +68,13 @@ def process_read(train_dir, file_name_list, batch_size, num_workers, mock_time, 
     res_queue.put([batch_train_time, qps])
 
 
-def select_files_to_read(full_file_name, subset_file_name, num_shards, shard_id):
+def select_files_to_read(file_name_list, subset_file_name, num_shards, shard_id):
     selected_file = open(subset_file_name, "w")
+    parent_folder = "/root/code/TrainingScript/"
+    full_file_name = parent_folder + file_name_list + ".txt"
+    zip_file_name = full_file_name + ".zip"
+    with zipfile.ZipFile(zip_file_name, 'r') as zip_ref:
+        zip_ref.extractall(parent_folder)
     with open(full_file_name, "r") as full_file:
         for i, line in enumerate(full_file):
             if i % num_shards == shard_id:
