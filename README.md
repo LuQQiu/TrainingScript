@@ -4,9 +4,12 @@ Dataset 1: 1.3 million * 100KB = 130GB small files
 alluxio root: overmind-imagenet
 mounted to local path: /alluxio/alluxio-mountpoint/alluxio-fuse/
 ```
-arena --loglevel info submit pytorch --name=test-job --gpus=0 --workers=4 --cpu 22 --memory 32G --selector alluxio-type=client \
---image=nvcr.io/nvidia/pytorch:21.05-py3 --data-dir=/alluxio/ --sync-mode=git --sync-source=https://github.com/LuQQiu/TrainingScript.git \
-"python /root/code/TrainingScript/main.py --epochs 1 --process 8 --subprocess 4 --batch-size 128 --mock-time 0 --print-freq 10 /alluxio/alluxio-mountpoint/alluxio-fuse/dali/train header-1-3m-100kb-130gb.txt"
+arena --loglevel info submit pytorch --name=test-job --gpus=0 --workers=2 --cpu 4 --memory 32G \
+--image=lvlouisaslia/alluxioloadagent:latest --data-dir=/alluxio/ \
+--sync-mode=git --sync-source=https://github.com/LuQQiu/TrainingScript.git \
+"/root/code/TrainingScript/run-test.sh 2 /root/code/TrainingScript/load.py --workers 2 \
+--file_name_list /root/code/TrainingScript/header-1-3m-100kb-130gb.csv --number_of_files 10000 \
+-p /alluxio/alluxio-mountpoint/alluxio-fuse/dali/train/"
 ```
 
 Dataset 2: 1k * 130MB = 130GB medium files
