@@ -66,7 +66,7 @@ def start_load(args):
         torch.distributed.init_process_group(backend='gloo', init_method='env://')
     except Exception as e:
         print(e)
-        time.sleep(100000)
+        time.sleep(180000)
         pass
     dataset = LocalDataset(size=args.number_of_files, filelist=args.file_name_list, prefix=args.path_prefix)
     sampler = DistributedSampler(dataset, shuffle=True)

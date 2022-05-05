@@ -8,7 +8,4 @@ rm -rf $PRO_TMP_DIR
 mkdir -p $PRO_TMP_DIR
 export PROMETHEUS_MULTIPROC_DIR=$PRO_TMP_DIR
 
-if [[ ${MASTER_ADDR} != "localhost" ]]; then
-   sleep 10000
-fi
-python -m torch.distributed.launch --master_addr="${MASTER_ADDR}" --master_port=${MASTER_PORT} --nnodes=${WORLD_SIZE} --node_rank=${RANK} --nproc_per_node=${nproc_per_node} $@
+python -m torch.distributed.launch --master_addr="ip-10-0-4-26.ec2.internal" --master_port=${MASTER_PORT} --nnodes=${WORLD_SIZE} --node_rank=${RANK} --nproc_per_node=${nproc_per_node} $@
