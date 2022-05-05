@@ -10,4 +10,4 @@ node_rank=${RANK:-0}
 
 nproc_per_node=${1}
 shift
-python -m torch.distributed.run --nnode=${nnode} --node_rank=${RANK} --nproc_per_node $num_proc $@
+python -m torch.distributed.run --nnode ${nnode} --node_rank ${RANK} --nproc_per_node $num_proc $@
