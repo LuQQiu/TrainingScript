@@ -76,6 +76,7 @@ def start_load(args):
     count = 0
     st = time.time()
     is_local_rank = int(os.environ['LOCAL_RANK']) == 0
+    print("local rank is {} args local rank is {}", int(os.environ['LOCAL_RANK']), args.local_rank)
     for _ in data_loader:
         if count % 100 == 0 and is_local_rank:
             print("processing ", count)
@@ -108,6 +109,8 @@ def main():
                         help='number of files to be processed')
     parser.add_argument('-p', '--path_prefix', type=str, metavar='N',
                         help='path prefix of the list files')
+    parser.add_argument('-r', '--local_rank', type=int, metavar='N',
+                        help='local rank')
     args = parser.parse_args()
     print(args)
     start_load(args)
