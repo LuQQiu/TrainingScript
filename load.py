@@ -62,6 +62,7 @@ class LocalDataset(Dataset):
 
 
 def start_load(args):
+    time.sleep(100000)
     torch.distributed.init_process_group(backend='gloo', init_method='env://')
     dataset = LocalDataset(size=args.number_of_files, filelist=args.file_name_list, prefix=args.path_prefix)
     sampler = DistributedSampler(dataset, shuffle=True)
