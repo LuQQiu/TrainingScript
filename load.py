@@ -63,7 +63,7 @@ class LocalDataset(Dataset):
 
 def start_load(args):
     try:
-        torch.distributed.init_process_group(backend='gloo', init_method='env://')
+        torch.distributed.init_process_group(backend='gloo', init_method='env://', timeout=timedelta(seconds=100))
     except Exception as e:
         print(e)
         time.sleep(180000)
