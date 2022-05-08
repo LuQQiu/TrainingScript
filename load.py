@@ -63,11 +63,7 @@ class LocalDataset(Dataset):
 
 
 def start_load(args):
-    try:
-        torch.distributed.init_process_group(backend='gloo', init_method='env://', timeout=datetime.timedelta(seconds=100))
-    except Exception as e:
-        print(e)
-        pass
+    torch.distributed.init_process_group(backend='gloo', init_method='env://', timeout=datetime.timedelta(seconds=300))
     dataset = LocalDataset(size=args.number_of_files, filelist=args.file_name_list, prefix=args.path_prefix)
     sampler = DistributedSampler(dataset, shuffle=True)
     data_loader = torch.utils.data.DataLoader(
