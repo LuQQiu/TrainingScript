@@ -35,7 +35,7 @@ def get_file_name_list(csv_file, max_len):
 class LocalDataset(Dataset):
     def __init__(self, size, filelist, prefix, H=224, W=224):
         self.file_name_list = get_file_name_list(filelist, size)
-        self.size = len(self.urls)
+        self.size = len(self.file_name_list)
         self.prefix = prefix
         if self.size == 0:
             # TODO(lu) more details
