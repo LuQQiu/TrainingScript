@@ -4,6 +4,7 @@
 
 import argparse
 import csv
+import datetime
 import os
 import torch
 import time
@@ -63,7 +64,7 @@ class LocalDataset(Dataset):
 
 def start_load(args):
     try:
-        torch.distributed.init_process_group(backend='gloo', init_method='env://', timeout=timedelta(seconds=100))
+        torch.distributed.init_process_group(backend='gloo', init_method='env://', timeout=datetime.timedelta(seconds=100))
     except Exception as e:
         print(e)
         pass
