@@ -23,8 +23,8 @@ def get_file_name_list(csv_file, max_len):
         reader = csv.reader(cf)
         urls = []
         count = 0
-        for val in reader:
-            urls.append(val.strip())
+        for row in reader:
+            urls.append(row[0].strip())
             count += 1
             if count >= max_len:
                 break
