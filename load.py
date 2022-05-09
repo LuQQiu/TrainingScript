@@ -28,7 +28,7 @@ def get_file_name_list(csv_file, max_len):
             count += 1
             if count >= max_len:
                 break
-    print("Prepared dataset with {} files", len(urls))
+    print("Prepared dataset with {} files".format(len(urls)))
     return urls
 
 
@@ -75,10 +75,8 @@ def start_load(args):
 
     count = 0
     st = time.time()
-    is_local_rank = int(os.environ['LOCAL_RANK']) == 0
-    print("local rank is {} args local rank is {}", int(os.environ['LOCAL_RANK']), args.local_rank)
     for _ in data_loader:
-        if count % 100 == 0 and is_local_rank:
+        if count % 100 == 0 and args.local_rank == 0:
             print("processing ", count)
         count += 1
     total_ts = time.time() - st
