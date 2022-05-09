@@ -80,7 +80,7 @@ def start_load(args):
             print("processing ", count)
         count += 1
     total_ts = time.time() - st
-    print("time cost for {} items:".format(count), total_ts)
+    print("time cost for {} batches:".format(count), total_ts)
     if count > 0:
         print("Overall Avg.Latency {:.2f} ms".format(total_ts * 1000.0 / count / args.batch_size))
         for metric in registry.collect():
