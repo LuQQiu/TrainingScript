@@ -28,7 +28,7 @@ def get_file_name_list(csv_file, max_len):
             count += 1
             if count >= max_len:
                 break
-    print("read data, number of files:", len(urls))
+    print("Prepared dataset with {} files", len(urls))
     return urls
 
 
@@ -38,8 +38,7 @@ class LocalDataset(Dataset):
         self.size = len(self.file_name_list)
         self.prefix = prefix
         if self.size == 0:
-            # TODO(lu) more details
-            raise (RuntimeError("Found 0 images"))
+            raise (RuntimeError("Found 0 files in the given file name list"))
         self.H = H
         self.W = W
 
