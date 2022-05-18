@@ -46,11 +46,24 @@ class LocalDataset(Dataset):
         file_name = self.file_name_list[index]
         file_path = os.path.join(self.prefix, file_name)
         v = 0
+        chunk_size = 8192
+        first_read = True
         try:
             start = time.time()
             with open(file_path, "rb") as f:
-                data = f.read()
-            v = len(data)
+                while True:
+                    if first_read:
+                        data = f.read(12)
+                        if not data:
+                            break
+                        if len(data) > data.count(b"\x00"):
+                            raise (RuntimeError("File {} contains {} all zero bytes".format(file_name, len(data))))
+                    else:
+                        data = f.read(chunk_size)
+                    first_read = False
+                    if not data:
+                        break
+                    v += len(data)
             LATENCY.observe(time.time() - start)
         except Exception as e:
             print(e)
