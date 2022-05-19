@@ -86,30 +86,36 @@ def start_load(args):
         drop_last=True,
         persistent_workers=True)
 
-    count = 0
-    st = time.time()
-    for _ in data_loader:
-        if count % 100 == 0 and args.local_rank == 0:
-            print("processing ", count)
-        count += 1
-    total_ts = time.time() - st
-    print("time cost for {} batches:".format(count), total_ts)
-    if count > 0:
-        print("Overall Avg.Latency {:.2f} ms".format(total_ts * 1000.0 / count / args.batch_size))
-        for metric in registry.collect():
-            name = metric.name
-            num = 0
-            total = 0
-            for item in metric.samples:
-                if item.name == name + "_sum":
-                    total = item.value
-                elif item.name == name + "_count":
-                    num = item.value
-            print("{}: {:.2f} ms".format(name, total * 1000.0/num))
+    for epoch in range(0, args.epochs):
+        count = 0
+        st = time.time()
+        for _ in data_loader:
+            if count % 100 == 0 and args.local_rank == 0:
+                print("epoch {}: processing {} in".format(epoch, count))
+            count += 1
+        total_ts = time.time() - st
+        print("epoch {}: time cost for {} batches: {}".format(epoch, count, total_ts))
+        if count > 0:
+            print("epoch {}: overall Avg.TrainingLatency {:.2f} ms, per node throughput {:.2f} files/second"
+                  .format(epoch, total_ts * 1000.0 / count / args.batch_size,
+                          count * args.batch_size / total_ts))
+            for metric in registry.collect():
+                name = metric.name
+                num = 0
+                total = 0
+                for item in metric.samples:
+                    if item.name == name + "_sum":
+                        total = item.value
+                    elif item.name == name + "_count":
+                        num = item.value
+                # TODO(lu) clean out the data
+                print("epoch {}: {}: {:.2f} ms".format(epoch, name, total * 1000.0/num))
 
 
 def main():
     parser = argparse.ArgumentParser(description='Alluxio POSIX API benchmark test')
+    parser.add_argument('-e', '--epochs', default=1, type=int, metavar='N',
+                        help='number of total epochs to run (default: 1)')
     parser.add_argument('-b', '--batch-size', default=128, type=int, metavar='N',
                         help='mini-batch size(default: 128)')
     parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
