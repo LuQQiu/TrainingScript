@@ -89,6 +89,8 @@ def start_load(args):
     for epoch in range(0, args.epochs):
         count = 0
         st = time.time()
+        global LATENCY
+        LATENCY = Summary("read_latency_{}".format(epoch), "Read request latency for epoch {}".format(epoch))
         for _ in data_loader:
             if count % 100 == 0 and args.local_rank == 0:
                 print("epoch {}: processing {} in".format(epoch, count))
@@ -108,8 +110,7 @@ def start_load(args):
                         total = item.value
                     elif item.name == name + "_count":
                         num = item.value
-                # TODO(lu) clean out the data
-                print("epoch {}: {}: {:.2f} ms".format(epoch, name, total * 1000.0/num))
+                print("metric: {}: {:.2f} ms".format(name, total * 1000.0/num))
 
 
 def main():
