@@ -109,10 +109,10 @@ def start_load(args):
                     elif item.name == name + "_count":
                         num = item.value
                     metric_latency = 0
-                    if num != 0:
-                        metric_latency = total * 1000.0/num
-                    # TODO(lu) correct latency
-                    print("metric: {}: {:.2f} ms".format(name, metric_latency))
+                if num != 0:
+                    metric_latency = total * 1000.0/num
+                # TODO(lu) correct latency
+                print("metric: {}: {:.2f} ms".format(name, metric_latency))
 
 
 def main():
