@@ -56,7 +56,7 @@ class LocalDataset(Dataset):
                         data = f.read(12)
                         if not data:
                             break
-                        if len(data) > data.count(b"\x00"):
+                        if len(data) == data.count(b"\x00"):
                             raise (RuntimeError("File {} contains {} all zero bytes".format(file_name, len(data))))
                     else:
                         data = f.read(chunk_size)
